@@ -123,7 +123,7 @@ Confirmed working with no Microsoft AV detections, on a variety of Windows syste
 
 `Take-Picture`       : Take a picture with any connected camera/webcam and upload to chat.
 
-`Record-Audio`  : Record microphone to Discord (RecordAudio -t 100) in seconds 
+`Record-Audio`       : Record microphone to mp3 file and upload to chat (RecordAudio -t 100) in seconds 
  
 **ADMIN ONLY FUNCTIONS**
 
