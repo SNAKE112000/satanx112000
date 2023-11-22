@@ -89,7 +89,9 @@ Confirmed working with no Microsoft AV detections, on a variety of Windows syste
 
 `Folder-Tree`        : Gets Directory trees for User folders and sends it zipped to the chat
 
-`Screenshot`        : Sends a screenshot of the desktop as a png file
+`SpeechToText`       : Send audio transcript to Discord 
+
+`Screenshot`         : Sends a screenshot of the desktop as a png file
 
 `Key-capture`        : Capture Keystrokes and send them (collected keystrokes are only sent after 10 seconds of keyboard inactivity)
 
