@@ -122,6 +122,8 @@ Confirmed working with no Microsoft AV detections, on a variety of Windows syste
 `Message`           : Send a message in a pop-up window to connected computer `Message "Your Message Here!"`
 
 `Take-Picture`       : Take a picture with any connected camera/webcam and upload to chat.
+
+`Record-Audio`  : Record microphone to Discord (RecordAudio -t 100) in seconds 
  
 **ADMIN ONLY FUNCTIONS**
 
