@@ -1,4 +1,4 @@
-<div align=center>
+<div align="left">
 
 <h2 align="center"> Change Log for PoshGram-C2 </h2>
 
