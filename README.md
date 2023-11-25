@@ -111,6 +111,14 @@ Confirmed working with no Microsoft AV detections, on a variety of Windows syste
 
 `Attempt-Elevate`    : Send user a prompt to grant Administrator privilages in a new session. (if the user accepts the prompt)
 
+`Message`           : Send a message in a pop-up window to connected computer `Message "Your Message Here!"`
+
+`Take-Picture`       : Take a picture with any connected camera/webcam and upload to chat.
+
+`Record-Audio`       : Record microphone to mp3 file and upload to chat. eg. `Record-Audio -t 100` in seconds 
+
+`Record-Screen`       : Record Screen to mkv file and upload to chat. eg. `Record-Screen -t 100` in seconds
+
 `Exfiltrate`        : Searches for, and sends, files to the chat as zip files split into 50mb each (Telegram max upload limit.)
 
  EXFILTRATION EXAMPLE COMMAND  =  `Exfiltrate -path [FOLDERS] -filetype [FILETYPES]`
@@ -118,10 +126,6 @@ Confirmed working with no Microsoft AV detections, on a variety of Windows syste
  FOLDERS = Documents, Desktop, Downloads, OneDrive, Pictures, Videos
  
  FILETYPES = log, db, txt, doc, pdf, jpg, jpeg, png, wdoc, xdoc, cer, key, xls, xlsx, cfg, conf, docx, rft
-
-`Message`           : Send a message in a pop-up window to connected computer `Message "Your Message Here!"`
-
-`Take-Picture`       : Take a picture with any connected camera/webcam and upload to chat.
  
 **ADMIN ONLY FUNCTIONS**
 
