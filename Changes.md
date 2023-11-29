@@ -4,6 +4,17 @@
 
 <br><br>
 
+<h3 align="left"> v1.7 - 29/11/23 - Optimization and Version Check</h3>
+
+**Features**
+- Added Auto Update Feature - check current version and update if neccecary
+
+**Changes**
+- Remove Module - History-Info (Now in Sys-Info Module)
+- Removed Module - Software-Info (Now in Sys-Info Module)
+
+<br><br>
+
 <h3 align="left"> v1.6 - 27/11/23 - Feature Additions </h3>
 
 **Features**
