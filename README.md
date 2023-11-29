@@ -33,6 +33,8 @@ Confirmed working with no Microsoft AV detections, on a variety of Windows syste
 
 **Persistance**            - Can add itself to startup folder (RemovePersistance command will undo this)
 
+**Auto Update**            - The script checks for a newer version and updates if neccecary.
+
 **Options List**           - Once connected type "Options" to see a list of operations. ("ExtraInfo" will show more command info)
 
 **Pause Session**          - exits the current session and script waits for re-authrentication.
@@ -96,10 +98,6 @@ Confirmed working with no Microsoft AV detections, on a variety of Windows syste
 `Key-capture`        : Capture Keystrokes and send them (collected keystrokes are only sent after 10 seconds of keyboard inactivity)
 
 `System-info`        : Send System info as text file (system, user, hardware, ip information and more)
-
-`Software-info`      : Send Software info as text file (installed programs, services, drivers and other software info)
-
-`History-info`       : Send History info as text file (browser and powershell history, clipoard contents)
 
 `Enumerate-LAN`      : find info on other network devices (IPv4, MAC address, Hostname, Manufacturer) (eg. `Enumerate-LAN -prefix 192.168.1`)
 
