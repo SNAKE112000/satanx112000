@@ -4,6 +4,14 @@
 
 <br><br>
 
+<h3 align="left"> v1.7.1 - 20/12/23 - Update for Win 11</h3>
+
+**Changes**
+- Updated hide window function for systems that use Windows Terminal as default console
+- Added Windows Build info to SystemInformation module
+
+<br><br>
+
 <h3 align="left"> v1.7 - 29/11/23 - Optimization and Version Check</h3>
 
 **Features**
